@@ -1,0 +1,9 @@
+.env
+__pycache__/
+*.pyc
+*.tmp
+.venv/
+venv/
+# 使用中的資料不上傳（示範資料用 python seed_data.py 重新產生）
+data/*.json
+data/chats/*.json

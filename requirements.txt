@@ -1,0 +1,5 @@
+# 第一次能跑之後，請用 pip freeze | findstr streamlit（Mac 用 grep）查版本，
+# 把下面改成「==實際版本」鎖住，例如 streamlit==1.50.0，全組才會一致
+streamlit>=1.40
+requests>=2.31
+python-dotenv>=1.0
