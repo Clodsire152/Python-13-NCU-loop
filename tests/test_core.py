@@ -302,10 +302,49 @@ def test_ai_mock_validation():
 
 def test_location_to_zone():
     assert campus_map.location_to_zone("圖書館三樓") == "library"
-    assert campus_map.location_to_zone("工程五館 E6") == "engineering"
+    assert campus_map.location_to_zone("中正圖書館") == "library"
+    assert campus_map.location_to_zone("工程一館") == "engineering"
+    assert campus_map.location_to_zone("工程二館") == "engineering2"
+    assert campus_map.location_to_zone("工程三館 E6") == "engineering3"
+    assert campus_map.location_to_zone("工程四館") == "engineering4"
+    assert campus_map.location_to_zone("工程五館 E6") == "engineering5"
+    assert campus_map.location_to_zone("科學一館") == "science"
+    assert campus_map.location_to_zone("科學二館") == "science2"
+    assert campus_map.location_to_zone("鴻經館・科學三館") == "science3"
+    assert campus_map.location_to_zone("科學四館") == "science4"
+    assert campus_map.location_to_zone("科學五館") == "science5"
+    assert campus_map.location_to_zone("國鼎光電大樓") == "guoding"
+    assert campus_map.location_to_zone("綜教館") == "north_facility"
+    assert campus_map.location_to_zone("教學研究綜合大樓") == "teaching"
+    assert campus_map.location_to_zone("大禮堂") == "activity"
+    assert campus_map.location_to_zone("客家學院") == "hakka"
+    assert campus_map.location_to_zone("室內游泳池") == "pool"
+    assert campus_map.location_to_zone("志希館") == "north_facility"
+    assert campus_map.location_to_zone("管理二館") == "management"
+    assert campus_map.location_to_zone("文學二館") == "literature"
+    assert campus_map.location_to_zone("人文社會科學大樓") == "literature"
+    assert campus_map.location_to_zone("運動中心與網球場") == "sports"
+    assert campus_map.location_to_zone("松苑") == "canteen"
+    assert campus_map.location_to_zone("松果館") == "pinecone_hall"
+    assert campus_map.location_to_zone("游藝館") == "play_hall"
+    assert campus_map.location_to_zone("正門牌坊") == "gate"
+    assert campus_map.location_to_zone("校史館") == "eastgate"
     assert campus_map.location_to_zone("男九舍") == "dorm"
     assert campus_map.location_to_zone("宵夜街") == "backgate"
     assert campus_map.location_to_zone("火星") == ""
+    for zone in campus_map.ZONES:
+        assert 0 <= zone["x"] - zone["w"] / 2
+        assert zone["x"] + zone["w"] / 2 <= 1000
+        assert 0 <= zone["y"] - zone["h"] / 2
+        assert zone["y"] + zone["h"] / 2 <= 640
+
+
+def test_zone_icons_do_not_overlap():
+    for i, first in enumerate(campus_map.ZONES):
+        for second in campus_map.ZONES[i + 1:]:
+            horizontal_gap = abs(first["x"] - second["x"]) - (first["w"] + second["w"]) / 2
+            vertical_gap = abs(first["y"] - second["y"]) - (first["h"] + second["h"]) / 2
+            assert horizontal_gap >= 0 or vertical_gap >= 0, (first["id"], second["id"])
 
 
 def test_zone_infos_counts():
