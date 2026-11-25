@@ -32,7 +32,8 @@
   svg.dragging { cursor: grabbing; }
   .zone { cursor: pointer; transition: filter .15s; }
   .zone:hover { filter: brightness(1.08) drop-shadow(0 4px 6px rgba(0,0,0,.18)); }
-  .zone-label { font-size: 15px; font-weight: 700; fill: #3B2A1A; pointer-events: none; paint-order: stroke; stroke: rgba(255,255,255,.85); stroke-width: 4px; }
+  .zone-label { font-size: 12px; font-weight: 700; fill: #3B2A1A; pointer-events: none; paint-order: stroke; stroke: rgba(255,255,255,.85); stroke-width: 3px; }
+  .roundabout-label { font-size: 10px; font-weight: 700; fill: #4B6242; text-anchor: middle; pointer-events: none; }
   .selected-ring { fill: none; stroke: var(--gold); stroke-width: 4; stroke-dasharray: 10 6; animation: dash 1.2s linear infinite; pointer-events: none; }
   .search-ring { fill: none; stroke: #FFE14D; stroke-width: 7; opacity: .9; animation: glow 1.1s ease-in-out infinite alternate; pointer-events: none; }
   @keyframes dash { to { stroke-dashoffset: -32; } }
@@ -191,30 +192,42 @@ svg.addEventListener("wheel", (e) => {
 }, { passive: false });
 
 // ───────────────────────── 畫地圖底圖（道路、松樹） ─────────────────────────
-const ROADS = [["gate","admin"],["admin","library"],["library","activity"],["activity","science"],["science","dorm"],
-               ["activity","management"],["library","canteen"],["canteen","backgate"],["engineering","backgate"],
-               ["activity","engineering"],["admin","sports"],["library","lake"],["lake","literature"],["literature","science"],
-               ["management","engineering"],["sports","lake"]];
+const ROAD_PATHS = [
+  [[500,197],[835,197],[835,493],[518,493],[518,197],[500,197]],
+  [[20,410],[223,270],[335,197],[500,197]],
+  [[20,472],[223,472],[223,270]],
+  [[223,472],[518,472]],
+  [[518,472],[518,493],[523,610]],
+  [[835,340],[967,345]]
+];
+const ROUNDABOUT = { x: 878, y: 340, r: 30 };
 function drawRoads() {
   const g = document.getElementById("roads");
   g.innerHTML = "";
   roadPts = [];
-  for (const r of ROADS) {
-    const a = zoneById(r[0]), b = zoneById(r[1]);
-    if (!a || !b) continue;
-    const mx = (a.x + b.x) / 2 + (a.y - b.y) * 0.12, my = (a.y + b.y) / 2 + (b.x - a.x) * 0.12;
-    const d = `M${a.x} ${a.y} Q${mx} ${my} ${b.x} ${b.y}`;
+  for (const points of ROAD_PATHS) {
+    const d = "M" + points.map(p => `${p[0]} ${p[1]}`).join(" L");
     el("path", { d: d, stroke: "#E2CFA4", "stroke-width": 24, fill: "none", "stroke-linecap": "round" }, g);
     el("path", { d: d, stroke: "#F6EBD0", "stroke-width": 18, fill: "none", "stroke-linecap": "round" }, g);
     el("path", { d: d, stroke: "#fff", "stroke-width": 2, fill: "none", "stroke-dasharray": "8 10", opacity: .8 }, g);
-    for (let i = 0; i <= 24; i++) {          // 記下道路經過的點，松樹不要種在路上
-      const t = i / 24;
-      roadPts.push([(1 - t) * (1 - t) * a.x + 2 * (1 - t) * t * mx + t * t * b.x, (1 - t) * (1 - t) * a.y + 2 * (1 - t) * t * my + t * t * b.y]);
+    for (let i = 0; i < points.length - 1; i++) {
+      const a = points[i], b = points[i + 1];
+      for (let j = 0; j <= 24; j++) {        // 記下道路經過的點，松樹不要種在路上
+        const t = j / 24;
+        roadPts.push([a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t]);
+      }
     }
   }
+  const roundabout = el("g", { class: "roundabout" }, g);
+  el("circle", { cx: ROUNDABOUT.x, cy: ROUNDABOUT.y, r: ROUNDABOUT.r, fill: "#D8C69C", stroke: "#B9A77E", "stroke-width": 2 }, roundabout);
+  el("circle", { cx: ROUNDABOUT.x, cy: ROUNDABOUT.y, r: 23, fill: "#F6EBD0", stroke: "#fff", "stroke-width": 2 }, roundabout);
+  el("circle", { cx: ROUNDABOUT.x, cy: ROUNDABOUT.y, r: 13, fill: "#CFE3B4", stroke: "#9AB581", "stroke-width": 2 }, roundabout);
+  const label = el("text", { x: ROUNDABOUT.x, y: ROUNDABOUT.y + 3, class: "roundabout-label" }, roundabout);
+  label.textContent = "圓環";
 }
 let roadPts = [];
 function nearRoad(x, y) {
+  if (Math.hypot(x - ROUNDABOUT.x, y - ROUNDABOUT.y) < ROUNDABOUT.r + 10) return true;
   for (const p of roadPts) if (Math.abs(p[0] - x) < 24 && Math.abs(p[1] - y) < 24) return true;
   return false;
 }
@@ -269,12 +282,14 @@ function drawZones() {
       el("rect", { x: x0 - 8, y: y0, width: z.w + 16, height: 14, rx: 4, fill: "#8C2B22" }, zg);
       el("rect", { x: x0 + 14, y: y0 + 22, width: z.w - 28, height: z.h - 22, fill: "rgba(255,255,255,.01)" }, zg);
     } else {
-      el("rect", { x: x0, y: y0 + 6, width: z.w, height: z.h, rx: 12, fill: "#C2A57A" }, zg);
-      el("rect", { x: x0, y: y0, width: z.w, height: z.h, rx: 12, fill: "#F7EBD3", stroke: "#B99467", "stroke-width": 2, filter: "url(#shadow)" }, zg);
-      el("rect", { x: x0 + 8, y: y0 + 36, width: z.w - 16, height: z.h - 42, rx: 6, fill: "url(#windows)", opacity: .9 }, zg);
-      el("rect", { x: x0, y: y0, width: z.w, height: 10, rx: 5, fill: "#9C6B3E" }, zg);
+      const roof = Math.max(5, z.h * 0.18);
+      const windowY = y0 + z.h * 0.58;
+      el("rect", { x: x0, y: y0 + 5, width: z.w, height: z.h - 5, rx: 8, fill: "#C2A57A" }, zg);
+      el("rect", { x: x0, y: y0, width: z.w, height: z.h, rx: 8, fill: "#F7EBD3", stroke: "#B99467", "stroke-width": 2, filter: "url(#shadow)" }, zg);
+      el("rect", { x: x0 + 6, y: windowY, width: z.w - 12, height: Math.max(4, z.h * 0.16), rx: 4, fill: "url(#windows)", opacity: .9 }, zg);
+      el("rect", { x: x0, y: y0, width: z.w, height: roof, rx: 4, fill: "#9C6B3E" }, zg);
     }
-    let labelY = y0 + 29;                       // 建築物：名字寫在屋頂下方，松鼠站在門口不會擋到
+    let labelY = y0 + z.h * 0.66;               // 建築物：名字寫在屋頂下方，松鼠站在門口不會擋到
     if (z.shape === "gate") labelY = y0 - 8;    // 校門：名字寫在橫樑上方
     if (z.shape === "lake") labelY = z.y + 6;
     if (z.shape === "field") labelY = z.y + 5;
@@ -311,7 +326,8 @@ function drawBadges() {
     const kinds = [];
     for (const k of ["lost", "found", "task", "event"]) if (layers[k] && z.counts[k] > 0) kinds.push(k);
     const w = 26 + kinds.length * 10 + (n >= 10 ? 8 : 0);
-    const bx = z.x + z.w / 2 - 10, by = z.y - z.h / 2 - (z.shape === "gate" ? 30 : 8);
+    const bx = z.x + z.w / 2 - 10;
+    const by = z.y - z.h / 2 < 34 ? z.y + z.h / 2 + 18 : z.y - z.h / 2 - (z.shape === "gate" ? 30 : 8);
     const bg = el("g", { class: "badge", transform: `translate(${bx},${by})` }, g);
     if (z.new) el("circle", { cx: 0, cy: 0, r: 16, class: "pulse" }, bg);
     el("rect", { x: -w / 2, y: -13, width: w, height: 26, rx: 13, class: "badge-bg" }, bg);
